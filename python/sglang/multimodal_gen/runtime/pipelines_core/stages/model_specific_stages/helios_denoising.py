@@ -50,14 +50,15 @@ def calculate_shift(
 
 
 def sample_block_noise(
-    batch_size, channel, num_frames, height, width, gamma, patch_size=(1, 2, 2), device="cuda"
+    batch_size, channel, num_frames, height, width, gamma, patch_size=(1, 2, 2), device="cuda", generator=None
 ):
     """Generate spatially-correlated block noise for pyramid SR."""
 
     # NOTE: A generator must be provided to ensure correct and reproducible results.
     # Creating a default generator here is a fallback only — without a fixed seed,
     # the output will be non-deterministic and may produce incorrect results in CP context.
-    generator = torch.Generator(device=device)
+    if generator is not None:
+        generator = torch.Generator(device=device)
 
     _, ph, pw = patch_size
     block_size = ph * pw
