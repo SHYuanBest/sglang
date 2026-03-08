@@ -50,29 +50,25 @@ def calculate_shift(
 
 
 def sample_block_noise(
-    batch_size, channel, num_frames, height, width, gamma, patch_size=(1, 2, 2), device="cuda", generator=None
+    batch_size, channel, num_frames, height, width, gamma, patch_size=(1, 2, 2)
 ):
     """Generate spatially-correlated block noise for pyramid SR."""
 
     # NOTE: A generator must be provided to ensure correct and reproducible results.
     # Creating a default generator here is a fallback only — without a fixed seed,
     # the output will be non-deterministic and may produce incorrect results in CP context.
-    if generator is not None:
-        generator = torch.Generator(device=device)
+    generator = torch.Generator()
 
     _, ph, pw = patch_size
     block_size = ph * pw
 
-    cov = (
-        torch.eye(block_size, device=device) * (1 + gamma)
-        - torch.ones(block_size, block_size, device=device) * gamma
-    )
-    cov += torch.eye(block_size, device=device) * 1e-8
+    cov = torch.eye(block_size) * (1 + gamma) - torch.ones(block_size, block_size) * gamma
+    cov += torch.eye(block_size) * 1e-8
     cov = cov.float()  # Upcast to fp32 for numerical stability — cholesky is unreliable in fp16/bf16.
 
     L = torch.linalg.cholesky(cov)
     block_number = batch_size * channel * num_frames * (height // ph) * (width // pw)
-    z = torch.randn(block_number, block_size, device=device, generator=generator)
+    z = torch.randn(block_number, block_size, generator=generator)
     noise = z @ L.T
 
     noise = noise.view(batch_size, channel, num_frames, height // ph, width // pw, ph, pw)
@@ -304,7 +300,7 @@ class HeliosChunkedDenoisingStage(PipelineStage):
                 beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
                 bs, ch, nf, h, w = latents.shape
-                noise = sample_block_noise(bs, ch, nf, h, w, gamma, patch_size, device=device)
+                noise = sample_block_noise(bs, ch, nf, h, w, gamma, patch_size)
                 noise = noise.to(device=device, dtype=target_dtype)
                 latents = alpha * latents + beta * noise
 
