@@ -57,8 +57,7 @@ def sample_block_noise(
     # NOTE: A generator must be provided to ensure correct and reproducible results.
     # Creating a default generator here is a fallback only — without a fixed seed,
     # the output will be non-deterministic and may produce incorrect results in CP context.
-    if generator is None:
-        generator = torch.Generator(device=device)
+    generator = torch.Generator(device=device)
 
     _, ph, pw = patch_size
     block_size = ph * pw
