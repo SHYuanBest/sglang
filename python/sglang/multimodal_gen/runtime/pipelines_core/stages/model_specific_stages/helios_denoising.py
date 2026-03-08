@@ -12,6 +12,7 @@ import math
 import numpy as np
 import torch
 import torch.nn.functional as F
+from accelerate.utils import broadcast
 
 from sglang.multimodal_gen.runtime.distributed import get_local_torch_device
 from sglang.multimodal_gen.runtime.managers.forward_context import set_forward_context
@@ -299,6 +300,7 @@ class HeliosChunkedDenoisingStage(PipelineStage):
                 bs, ch, nf, h, w = latents.shape
                 noise = sample_block_noise(bs, ch, nf, h, w, gamma, patch_size)
                 noise = noise.to(device=device, dtype=target_dtype)
+                noise = broadcast(noise, from_process=0)
                 latents = alpha * latents + beta * noise
 
                 if is_distilled:
