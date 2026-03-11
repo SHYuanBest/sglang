@@ -62,17 +62,25 @@ def sample_block_noise(
     _, ph, pw = patch_size
     block_size = ph * pw
 
-    cov = torch.eye(block_size) * (1 + gamma) - torch.ones(block_size, block_size) * gamma
+    cov = (
+        torch.eye(block_size) * (1 + gamma) - torch.ones(block_size, block_size) * gamma
+    )
     cov += torch.eye(block_size) * 1e-8
-    cov = cov.float()  # Upcast to fp32 for numerical stability — cholesky is unreliable in fp16/bf16.
+    cov = (
+        cov.float()
+    )  # Upcast to fp32 for numerical stability — cholesky is unreliable in fp16/bf16.
 
     L = torch.linalg.cholesky(cov)
     block_number = batch_size * channel * num_frames * (height // ph) * (width // pw)
     z = torch.randn(block_number, block_size, generator=generator)
     noise = z @ L.T
 
-    noise = noise.view(batch_size, channel, num_frames, height // ph, width // pw, ph, pw)
-    noise = noise.permute(0, 1, 2, 3, 5, 4, 6).reshape(batch_size, channel, num_frames, height, width)
+    noise = noise.view(
+        batch_size, channel, num_frames, height // ph, width // pw, ph, pw
+    )
+    noise = noise.permute(0, 1, 2, 3, 5, 4, 6).reshape(
+        batch_size, channel, num_frames, height, width
+    )
 
     return noise
 
